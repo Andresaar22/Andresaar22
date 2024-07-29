@@ -1,0 +1,62 @@
+#include <WiFi.h>
+#include <WebServer.h>
+#include "DHT.h"
+
+// Credenciales de WiFi (compartir internet desde celular)
+const char* ssid = "Andres";
+const char* password = "Andres2004";
+
+// Definición del sensor DHT11
+#define DHTPIN 4
+#define DHTTYPE DHT11
+DHT dht(DHTPIN, DHTTYPE);
+
+// Instancia del servidor web
+WebServer server(80);
+
+void setup() {
+  Serial.begin(115200);
+
+  // Conectar a la red WiFi compartida desde el celular
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Conectando a WiFi...");
+  }
+  Serial.println("Conectado a WiFi");
+  Serial.print("Dirección IP: ");
+  Serial.println(WiFi.localIP());
+
+  dht.begin();
+
+  // Configurar las rutas del servidor web
+  server.on("/", handleRoot);
+  server.begin();
+  Serial.println("Servidor web iniciado");
+}
+
+void loop() {
+  server.handleClient();
+}
+
+void handleRoot() {
+  // Leer la temperatura del sensor DHT11
+  float temperature = dht.readTemperature();
+
+  // Comprobar si se ha leído la temperatura correctamente
+  if (isnan(temperature)) {
+    Serial.println("Error al leer la temperatura del sensor DHT11");
+  }
+
+  String html = "<!DOCTYPE html>";
+  html += "<html>";
+  html += "<head><title>ESP32</title></head>";
+  html += "<body>";
+  html += "<h1>Temperatura</h1>";
+  html += "<p>La temperatura actual es: ";
+  html += temperature;
+  html += " °C</p>";
+  html += "</body>";
+  html += "</html>";
+  server.send(200, "text/html", html);
+}
